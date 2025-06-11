@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菊地 玲 | AIと人を繋ぎ、医療の未来を創造する</title>
+    <meta name="description" content="菊地 玲 (Rei Kikuchi) のポートフォリオ。芝浦工業大学大学院にて生体力学(筋力・筋質)を研究。その知見とAI、インタラクションデザインを掛け合わせ、未来の医療・ヘルスケア体験を構築します。">
+
+    <!-- 外部ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-color: #000005;
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --accent-glow: #6a32ff;
+            --font-display: 'Syne', 'Noto Sans JP', sans-serif;
+            --font-body: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            cursor: none; /* カスタムカーソルを使用 */
+        }
+        
+        /* --- カスタムカーソル --- */
+        #cursor-dot, #cursor-ring {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 10001;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+        }
+        #cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-glow);
+        }
+        #cursor-ring {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--accent-glow);
+            opacity: 0.5;
+            transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.4s ease-out;
+        }
+        body:hover #cursor-dot, body:hover #cursor-ring { opacity: 1; }
+        /* ホバー時のカーソル変化 */
+        .cursor-pointer { cursor: pointer; }
+        .cursor-pointer:hover ~ #cursor-ring {
+            width: 60px;
+            height: 60px;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        .cursor-pointer:hover ~ #cursor-dot {
+            transform: translate(-50%, -50%) scale(0);
+        }
+
+        /* --- スクロールバー --- */
+        body::-webkit-scrollbar { width: 8px; }
+        body::-webkit-scrollbar-track { background: var(--bg-color); }
+        body::-webkit-scrollbar-thumb { background-color: var(--accent-glow); border-radius: 20px; transition: background-color 0.5s; }
+
+        /* --- イントロ画面 --- */
+        #intro-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10000;
+        }
+        #intro-text {
+            font-family: var(--font-display); font-size: clamp(1rem, 3vw, 1.5rem); color: var(--text-secondary);
+            opacity: 0;
+        }
+        
+        /* --- 3Dキャンバス --- */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; opacity: 0; }
+
+        /* --- ヘッダー --- */
+        .site-header {
+            position: fixed; top: -100px; left: 0; width: 100%; padding: 20px 8%;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; background: rgba(0, 0, 5, 0.5);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .site-logo {
+            font-family: var(--font-display); font-weight: 700; font-size: 1.5rem;
+            color: var(--text-primary); text-decoration: none;
+        }
+        .main-nav a {
+            font-family: var(--font-body); font-weight: 500; color: var(--text-secondary);
+            text-decoration: none; margin-left: 35px; transition: color 0.3s ease;
+            position: relative; padding-bottom: 5px;
+        }
+        .main-nav a::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 0;
+            height: 2px; background-color: var(--accent-glow);
+            transition: width 0.4s ease-in-out, background-color 0.5s;
+        }
+        .main-nav a:hover { color: var(--text-primary); }
+        .main-nav a:hover::after { width: 100%; }
+
+        /* --- コンテンツエリア --- */
+        .scroll-content { position: relative; z-index: 10; width: 100%; opacity: 0; }
+        .section {
+            padding: 15vh 8%; min-height: 100vh;
+            display: flex; flex-direction: column; justify-content: center;
+            position: relative;
+        }
+        
+        /* --- ヒーローセクション --- */
+        .hero-content { text-align: center; }
+        .hero-title {
+            font-family: var(--font-display); font-weight: 800;
+            font-size: clamp(2.5rem, 8vw, 6rem); line-height: 1.2; letter-spacing: -0.02em;
+        }
+        .hero-title .line-wrapper { display: block; overflow: hidden; }
+        .hero-title .line { transform: translateY(110%); }
+        .hero-subtitle {
+            max-width: 750px; margin: 2rem auto; color: var(--text-secondary);
+            font-size: 1.1rem; line-height: 1.8;
+        }
+        /* スクロールダウンインジケーター */
+        .scroll-down {
+            position: absolute; bottom: 5vh; left: 50%; transform: translateX(-50%);
+            width: 24px; height: 40px; border: 2px solid var(--text-secondary);
+            border-radius: 20px;
+        }
+        .scroll-down::before {
+            content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            width: 4px; height: 8px; background-color: var(--text-secondary);
+            border-radius: 2px; animation: scroll-anim 2s infinite;
+        }
+        @keyframes scroll-anim {
+            0% { transform: translate(-50%, 0); opacity: 1; }
+            50% { transform: translate(-50%, 10px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        /* --- カード共通スタイル --- */
+        .card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 2.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            border-color: rgba(var(--accent-rgb), 0.5);
+        }
+        
+        /* --- Profileセクション --- */
+        .profile-container { max-width: 1200px; margin: 0 auto; }
+        .profile-card { display: flex; flex-wrap: wrap; align-items: center; gap: 2.5rem; }
+        .profile-image img { width: 150px; height: 150px; border-radius: 50%; border: 3px solid rgba(var(--accent-rgb), 0.3); object-fit: cover; transition: border-color 0.5s; }
+        .profile-details { flex-grow: 1; }
+        .profile-details p { color: var(--text-secondary); line-height: 1.7; margin-bottom: 0.8em; }
+        .profile-details p strong { color: var(--text-primary); font-weight: 500; }
+        
+        /* --- Works Section --- */
+        .works-section { text-align: center; }
+        .project-card { max-width: 800px; margin: 0 auto; text-align: left; }
+        .project-image-container { text-align: center; }
+        .project-card img {
+            max-width: 100%; width: 450px; border-radius: 12px; margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .project-card h3 { font-family: var(--font-display); font-size: 2rem; margin-bottom: 1rem; text-align: center; }
+        .project-card p { color: var(--text-secondary); margin-bottom: 1em; line-height: 1.7; }
+        .project-card strong { color: var(--text-primary); }
+        .project-card .cta-container { text-align: center; margin-top: 2.5rem; }
+        .cta-button {
+            display: inline-block; background-color: var(--accent-glow); color: var(--text-primary);
+            padding: 14px 35px; border-radius: 50px; text-decoration: none;
+            font-family: var(--font-display); font-weight: 700;
+            transition: transform 0.3s ease, background-color 0.5s;
+        }
+        .cta-button:hover { transform: scale(1.05); }
+
+        .section-title {
+            text-align: center; font-family: var(--font-display);
+            font-size: clamp(2.5rem, 5vw, 4rem); margin-bottom: 4rem;
+        }
+        .split-char { display: inline-block; } /* GSAP用 */
+
+        /* --- フッター --- */
+        footer { padding: 5rem 8%; text-align: center; color: var(--text-secondary); border-top: 1px solid rgba(255, 255, 255, 0.1); min-height: auto; }
+        .social-links a { color: var(--text-secondary); text-decoration: none; margin: 0 15px; transition: color 0.3s, transform 0.3s; display: inline-block; vertical-align: middle; }
+        .social-links a:hover { color: var(--accent-glow); transform: scale(1.2); }
+        .social-links svg { width: 28px; height: 28px; fill: currentColor; }
+        footer p { margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <!-- カスタムカーソル -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <!-- シネマティック・イントロ -->
+    <div id="intro-overlay">
+        <div id="intro-text"></div>
+    </div>
+
+    <header class="site-header">
+        <a href="#" class="site-logo cursor-pointer">Rei Kikuchi</a>
+        <nav class="main-nav">
+            <a href="#profile" class="cursor-pointer">Profile</a>
+            <a href="#works" class="cursor-pointer">Works</a>
+            <a href="#contact" class="cursor-pointer">Contact</a>
+        </nav>
+    </header>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="scroll-content">
+        <section class="hero-content section">
+            <h1 class="hero-title">
+                <span class="line-wrapper"><span class="line">AIと人を繋ぎ、</span></span>
+                <span class="line-wrapper"><span class="line">医療を前進させる。</span></span>
+            </h1>
+            <p class="hero-subtitle">芝浦工業大学大学院の生体機械学研究室にて、筋力・筋質のデータ解析から人の身体を深く探求。その知見を活かし、AIと人間が協調する未来の医療・ヘルスケアシステムの構築を目指します。</p>
+            <div class="scroll-down"></div>
+        </section>
+
+        <section id="profile" class="section">
+            <h2 class="section-title">Profile</h2>
+            <div class="profile-container">
+                <div class="profile-card card">
+                    <div class="profile-image">
+                        <img src="file:///Users/kikuchirei/Desktop/AI/rei_kikuchi_profile.jpg" alt="菊地 玲 プロフィール写真">
+                    </div>
+                    <div class="profile-details">
+                        <p><strong>氏名:</strong> 菊地 玲 (Rei Kikuchi)</p>
+                        <p><strong>学歴:</strong> 芝浦工業大学大学院 理工学研究科 システム理工学専攻 生体機械学研究室 (2026年度修了予定)</p>
+                        <p><strong>研究テーマ:</strong> 生体力学に基づく筋力および筋質の評価・解析</p>
+                        <p><strong>ビジョン:</strong> 人体に関する深い理解とAI技術を融合させ、リハビリテーション支援や個別化医療に貢献するシステムの社会実装を目指す。</p>
+                        <p><strong>得意な技術:</strong> Python (データ解析, AI), JavaScript (Three.js, React), UI/UXデザイン, YouTube Data API</p>
+                        <p><strong>開発思想:</strong> 私の研究の根幹にあるのは、筋力や筋質といったデータから人間の状態を定量的に理解することです。このアプローチを開発にも応用し、複雑なAIの判断根拠を医療従事者が直感的に把握できるインターフェースや、患者が自身の状態をポジティブに理解できるようなデータ可視化に情熱を注いでいます。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="works" class="section">
+            <h2 class="section-title">Works</h2>
+            <div class="project-card card">
+                <div class="project-image-container">
+                    <img src="file:///Users/kikuchirei/Desktop/AI/jungle_groove_hero_banner3.png" alt="JUNGLE GROOVE アプリケーションのスクリーンショット" class="cursor-pointer">
+                </div>
+                <h3>AIミュージックプラットフォーム "JUNGLE GROOVE"</h3>
+                <p><strong>コンセプト:</strong> AIが生成したアートと音楽を、インタラクティブな視聴覚体験として提供するパーソナルミュージックアプリ。</p>
+                <p><strong>使用技術:</strong> Three.js, GLSL, Web Audio API, GSAP, YouTube Data API</p>
+                <p><strong>挑戦したこと:</strong> AIで画像と音楽を生成し、動画として自身のYouTubeチャンネルに投稿。そのコンテンツをYouTube Data API経由でアプリに統合しました。アプリ内では、Web Audio APIでリアルタイムに音楽データを解析し、その強弱に応じてGLSLシェーダーで描画されるオーブが動的に変容します。AIによるコンテンツ制作からAPI連携、ユーザーの感情に訴えかけるフロントエンド開発まで、一連のパイプラインを構築したプロジェクトです。</p>
+                <div class="cta-container">
+                     <a href="https://rei0623.github.io/rei/jungle_groove_ui" target="_blank" rel="noopener noreferrer" class="cta-button cursor-pointer">アプリを試す</a>
+                </div>
+            </div>
+        </section>
+
+        <footer id="contact">
+            <div class="social-links">
+                <a href="https://www.youtube.com/channel/UCYAuSEKhuk3v4ZKzm5Lqb1Q" class="cursor-pointer" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                    <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                </a>
+                 <a href="https://github.com/rei0623" class="cursor-pointer" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                    <svg viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                </a>
+            </div>
+            <p>© 2024 Rei Kikuchi. All Rights Reserved.</p>
+        </footer>
+    </div>
+    
+    <script type="x-shader/x-vertex" id="vertexShader">
+        uniform float u_time;
+        uniform float u_intensity;
+        varying vec3 v_normal;
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+        vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+        float snoise(vec3 v) { const vec2 C = vec2(1.0/6.0, 1.0/3.0); const vec4 D = vec4(0.0, 0.5, 1.0, 2.0); vec3 i = floor(v + dot(v, C.yyy)); vec3 x0 = v - i + dot(i, C.xxx); vec3 g = step(x0.yzx, x0.xyz); vec3 l = 1.0 - g; vec3 i1 = min(g.xyz, l.zxy); vec3 i2 = max(g.xyz, l.zxy); vec3 x1 = x0 - i1 + C.xxx; vec3 x2 = x0 - i2 + C.yyy; vec3 x3 = x0 - D.yyy; i = mod289(i); vec4 p = permute(permute(permute( i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0)); float n_ = 0.142857142857; vec3 ns = n_ * D.wyz - D.xzx; vec4 j = p - 49.0 * floor(p * ns.z * ns.z); vec4 x_ = floor(j * ns.z); vec4 y_ = floor(j - 7.0 * x_); vec4 x = x_ * ns.x + ns.yyyy; vec4 y = y_ * ns.x + ns.yyyy; vec4 h = 1.0 - abs(x) - abs(y); vec4 b0 = vec4(x.xy, y.xy); vec4 b1 = vec4(x.zw, y.zw); vec4 s0 = floor(b0) * 2.0 + 1.0; vec4 s1 = floor(b1) * 2.0 + 1.0; vec4 sh = -step(h, vec4(0.0)); vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy; vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww; vec3 p0 = vec3(a0.xy, h.x); vec3 p1 = vec3(a0.zw, h.y); vec3 p2 = vec3(a1.xy, h.z); vec3 p3 = vec3(a1.zw, h.w); vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3))); p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w; vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0); m = m * m; return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3))); }
+        void main() { v_normal = normal; float distortion = snoise(normal * u_intensity + u_time * 0.2) * 0.2; vec3 new_position = position + normal * distortion; gl_Position = projectionMatrix * modelViewMatrix * vec4(new_position, 1.0); }
+    </script>
+    <script type="x-shader/x-fragment" id="fragmentShader">
+        uniform vec3 u_color;
+        varying vec3 v_normal;
+        void main() { float intensity = pow(0.7 - dot(v_normal, vec3(0.0, 0.0, 1.0)), 2.0); gl_FragColor = vec4(u_color * intensity, intensity * 0.8); }
+    </script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- 1. SETUP: DOM要素の取得 ---
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorRing = document.getElementById('cursor-ring');
+        const introOverlay = document.getElementById('intro-overlay');
+        const introText = document.getElementById('intro-text');
+        const bgCanvas = document.getElementById('bg-canvas');
+        const scrollContent = document.querySelector('.scroll-content');
+        const header = document.querySelector('.site-header');
+
+        // --- 2. カスタムカーソル制御 ---
+        gsap.set(cursorDot, { xPercent: -50, yPercent: -50 });
+        gsap.set(cursorRing, { xPercent: -50, yPercent: -50 });
+
+        window.addEventListener('mousemove', e => {
+            gsap.set(cursorDot, { x: e.clientX, y: e.clientY });
+            gsap.set(cursorRing, { x: e.clientX, y: e.clientY });
+        });
+        
+        document.querySelectorAll('.cursor-pointer').forEach(el => {
+            el.addEventListener('mouseover', () => gsap.to(el, { zIndex: 1 }));
+            el.addEventListener('mouseout', () => gsap.to(el, { zIndex: 0 }));
+        });
+
+        // --- 3. THREE.JS SCENE SETUP ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        const geometry = new THREE.IcosahedronGeometry(1.5, 15);
+        const material = new THREE.ShaderMaterial({
+            vertexShader: document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById('fragmentShader').textContent,
+            uniforms: {
+                u_time: { value: 0 },
+                u_intensity: { value: 2.0 },
+                u_color: { value: new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--accent-glow')) }
+            },
+            transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        const orb = new THREE.Mesh(geometry, material);
+        orb.scale.set(0, 0, 0); // 初期スケールは0
+        scene.add(orb);
+        camera.position.z = 5;
+
+        // --- 4. シネマティック・イントロ & メインコンテンツ表示 ---
+        function runIntro() {
+            const introMessages = ["Analyzing Biomechanics...", "Calibrating Human-AI Interface...", "Vision: Augmenting Healthcare."];
+            const tlIntro = gsap.timeline();
+            
+            introMessages.forEach((msg) => {
+                tlIntro.to(introText, { opacity: 1, duration: 0.5, onStart: () => { introText.innerText = msg; } })
+                       .to(introText, { opacity: 0, duration: 0.5 }, "+=1.0");
+            });
+
+            tlIntro.to(introOverlay, { opacity: 0, duration: 1, onComplete: () => introOverlay.style.display = 'none' });
+
+            tlIntro.to(bgCanvas, { opacity: 1, duration: 1.5 }, "-=1")
+                   .to(orb.scale, { x: 1, y: 1, z: 1, duration: 2, ease: "expo.out" }, "<")
+                   .to(scrollContent, { opacity: 1, duration: 1 }, "<")
+                   .fromTo(".hero-title .line", { y: "110%" }, { y: "0%", duration: 1.5, ease: "expo.out", stagger: 0.2 }, "-=1.5")
+                   .from(".hero-subtitle", { autoAlpha: 0, y: 20, duration: 1.2, ease: "power3.out" }, "-=1.2")
+                   .to(header, { top: 0, duration: 1, ease: 'power3.out' }, '-=1');
+        }
+        runIntro();
+
+        // --- 5. メインアニメーションループ ---
+        const clock = new THREE.Clock();
+        function animate() {
+            material.uniforms.u_time.value = clock.getElapsedTime();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- 6. スクロール連動インタラクション ---
+        gsap.utils.toArray('.section-title').forEach(title => {
+            const chars = title.textContent.split('').map(char => `<span class="split-char">${char}</span>`).join('');
+            title.innerHTML = chars;
+            gsap.from(title.querySelectorAll('.split-char'), {
+                scrollTrigger: { trigger: title, start: "top 85%" },
+                y: 50, autoAlpha: 0, stagger: 0.05, duration: 1, ease: "back.out(1.7)"
+            });
+        });
+
+        gsap.utils.toArray('.card').forEach(card => {
+            gsap.from(card, {
+                scrollTrigger: { trigger: card, start: "top 90%" },
+                opacity: 0, y: 60, duration: 1.2, ease: "power3.out"
+            });
+        });
+        
+        gsap.timeline({
+            scrollTrigger: { trigger: ".scroll-content", start: "top top", end: "bottom bottom", scrub: 1.5 }
+        })
+        .to(orb.rotation, { y: Math.PI * 1.5, x: Math.PI * 0.5 }, 0)
+        .to(material.uniforms.u_intensity, { value: 6.0 }, 0)
+        .to(camera.position, { z: 4.0 }, 0);
+
+        const accentColors = {
+            profile: { hex: '#2ecc71', rgb: '46, 204, 113' },
+            works: { hex: '#e74c3c', rgb: '231, 76, 60' },
+            contact: { hex: '#f39c12', rgb: '243, 156, 18' }
+        };
+
+        function changeAccentColor(color, rgb) {
+            gsap.to(material.uniforms.u_color.value, { r: color.r, g: color.g, b: color.b, duration: 1 });
+            document.documentElement.style.setProperty('--accent-glow', color.getStyle());
+            document.documentElement.style.setProperty('--accent-rgb', rgb);
+        }
+
+        ScrollTrigger.create({ trigger: "#profile", start: "top center", end: "bottom center",
+            onEnter: () => changeAccentColor(new THREE.Color(accentColors.profile.hex), accentColors.profile.rgb),
+            onLeaveBack: () => changeAccentColor(new THREE.Color('#6a32ff'), '106, 50, 255')
+        });
+        ScrollTrigger.create({ trigger: "#works", start: "top center", end: "bottom center",
+            onEnter: () => changeAccentColor(new THREE.Color(accentColors.works.hex), accentColors.works.rgb),
+            onLeaveBack: () => changeAccentColor(new THREE.Color(accentColors.profile.hex), accentColors.profile.rgb)
+        });
+         ScrollTrigger.create({ trigger: "#contact", start: "top center", end: "bottom center",
+            onEnter: () => changeAccentColor(new THREE.Color(accentColors.contact.hex), accentColors.contact.rgb),
+            onLeaveBack: () => changeAccentColor(new THREE.Color(accentColors.works.hex), accentColors.works.rgb)
+        });
+
+        // --- 7. リサイズ対応 ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+    });
+    </script>
+</body>
+</html>
