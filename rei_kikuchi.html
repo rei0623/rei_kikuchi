@@ -179,6 +179,35 @@
             .profile-image { margin: 0 auto; }
             .profile-details dl { grid-template-columns: 1fr; text-align: left; }
             .project-card dl { grid-template-columns: 1fr; }
+
+            /* Community セクション: モバイル最適化 */
+            #community .card { padding: 2rem; }
+            /* グリッド本体（inline-styleを上書き） */
+            #community .card > div[style*="display: grid"] {
+                grid-template-columns: 1fr !important;
+                gap: 1.25rem !important;
+                justify-items: center;
+            }
+            /* ロゴ画像サイズ調整 */
+            #community img[alt="AI Frontier News JP ロゴ"] {
+                width: 120px !important;
+                height: 120px !important;
+                padding: 10px !important;
+                border-radius: 12px !important;
+                margin: 0 auto !important;
+            }
+            /* 見出し・本文の可読性調整 */
+            #community h3 { font-size: 1.5rem !important; text-align: center; }
+            #community h4 { font-size: 1.05rem; }
+            #community p { font-size: 0.95rem; }
+            #community ul { text-align: left; margin-left: 0.25rem; padding-left: 1rem; }
+            /* CTAを押しやすく */
+            #community .cta-button {
+                width: 100%;
+                max-width: 360px;
+                padding: 14px 28px !important;
+                font-size: 1rem !important;
+            }
         }
     </style>
 </head>
